@@ -16,7 +16,7 @@
 
   ### Installation 安装
 
-  **_点击 [下载链接](https://www.icloud.com/shortcuts/dda350109be647529bcbc23628c32613) 安装_**
+  **_点击 [下载链接](https://www.icloud.com/shortcuts/8d2fd93eb51b4497a0f134d778f39a9c) 安装_**
 
 
   ### :shipit: Tips 小贴士
