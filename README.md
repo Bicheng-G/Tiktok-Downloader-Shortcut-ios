@@ -4,7 +4,7 @@
 ONLY WORKS WITH TIKTOK FROM CHINA APPSTORE  
 只适用于中国区抖音
 
-## ![](img/tiktok_downloader.png) TikTok Downloader
+## ![](img/tiktok_downloader_small) TikTok Downloader
 ### Description 介绍
 This Shortcut helps you to download Tiktok videos without watermark to your local storage.   
 这是一个简单的快捷指令可以保存抖音无水印版视频到本地
