@@ -11,19 +11,14 @@
 
   ### How to use 使用方法
     1. 复制视频链接
-    2. 打开快捷指令
-    3. 下载好的视频会有预览
+    2. 激活快捷指令
+    3. 下载成功后可以预览视频
 
   ### Installation 安装
   
-  #### 方法 1 ####
 
    **_点击 [下载链接](https://www.icloud.com/shortcuts/8d2fd93eb51b4497a0f134d778f39a9c) 安装_**
   
-  #### 方法 2 ####
-  
-   **_点击 [下载链接2](  https://github.com/bc2ajia/Tiktok-Downloader-Shortcut-ios/raw/main/src/TikTok%20Downloader.shortcut
-) 安装_**
   
 
   ### :shipit: Tips 小贴士
