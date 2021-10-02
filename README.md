@@ -10,14 +10,21 @@
   这是一个简单的快捷指令可以保存抖音无水印版视频到本地
 
   ### How to use 使用方法
-    1. 复制视频链接:link:
+    1. 复制视频链接
     2. 打开快捷指令
     3. 下载好的视频会有预览
 
   ### Installation 安装
+  
+  #### 方法 1 ####
 
-  **_点击 [下载链接](https://www.icloud.com/shortcuts/8d2fd93eb51b4497a0f134d778f39a9c) 安装_**
-
+   **_点击 [下载链接](https://www.icloud.com/shortcuts/8d2fd93eb51b4497a0f134d778f39a9c) 安装_**
+  
+  #### 方法 2 ####
+  
+   **_点击 [下载链接2](  https://github.com/bc2ajia/Tiktok-Downloader-Shortcut-ios/raw/main/src/TikTok%20Downloader.shortcut
+) 安装_**
+  
 
   ### :shipit: Tips 小贴士
   * 可以使用嘿siri 激活指令，就不用切换界面了
