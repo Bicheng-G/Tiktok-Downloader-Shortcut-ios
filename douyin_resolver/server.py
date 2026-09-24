@@ -23,21 +23,27 @@ class Settings:
     channel: str = "chromium"
     timeout: int = 35
     cache_ttl: int = 45
+    telegram_token: str = ""
+    telegram_user_ids: tuple[int, ...] = ()
 
     @classmethod
     def from_env(cls):
+        user_ids = os.getenv("TELEGRAM_ALLOWED_USER_IDS", "").strip()
         return cls(token=os.getenv("DOUYIN_API_TOKEN", ""),
                    engine=os.getenv("DOUYIN_ENGINE", "auto"),
                    channel=os.getenv("DOUYIN_BROWSER_CHANNEL", "chromium"),
                    timeout=int(os.getenv("DOUYIN_BROWSER_TIMEOUT", "35")),
-                   cache_ttl=int(os.getenv("DOUYIN_CACHE_TTL", "45")))
+                   cache_ttl=int(os.getenv("DOUYIN_CACHE_TTL", "45")),
+                   telegram_token=os.getenv("TELEGRAM_BOT_TOKEN", "").strip(),
+                   telegram_user_ids=tuple(int(value.strip()) for value in user_ids.split(",")
+                                           if value.strip()))
 
 
 def reply(status_code, **body):
     return JSONResponse(body, status_code=status_code, headers={"Cache-Control": "no-store"})
 
 
-def create_app(settings=None, resolver=None):
+def create_app(settings=None, resolver=None, telegram_api=None):
     settings = settings or Settings.from_env()
     if (len(settings.token) < 24 or not settings.token.isascii() or any(c.isspace() for c in settings.token)
             or settings.token.startswith(("REPLACE_", "YOUR_"))):
@@ -46,14 +52,28 @@ def create_app(settings=None, resolver=None):
         raise ValueError("DOUYIN_ENGINE must be auto, http or browser")
     if not 1 <= settings.timeout <= 90 or not 0 <= settings.cache_ttl <= 300:
         raise ValueError("Browser timeout must be 1..90; cache TTL must be 0..300")
+    if bool(settings.telegram_token) != bool(settings.telegram_user_ids):
+        raise ValueError("Set both TELEGRAM_BOT_TOKEN and TELEGRAM_ALLOWED_USER_IDS to enable the bot")
+    if any(type(user_id) is not int or user_id <= 0 for user_id in settings.telegram_user_ids):
+        raise ValueError("TELEGRAM_ALLOWED_USER_IDS must contain positive integer IDs")
 
     @asynccontextmanager
     async def lifespan(app):
         app.state.resolver = resolver or Resolver(engine=settings.engine, channel=settings.channel,
                                                  timeout=settings.timeout, cache_ttl=settings.cache_ttl)
+        bot = None
+        if settings.telegram_token:
+            from .telegram_bot import TelegramAPI, TelegramBot
+            bot = TelegramBot(api=telegram_api or TelegramAPI(settings.telegram_token),
+                              resolver=app.state.resolver,
+                              allowed_user_ids=settings.telegram_user_ids)
+            bot.start()
+            app.state.telegram_bot = bot
         try:
             yield
         finally:
+            if bot:
+                await bot.stop()
             await asyncio.to_thread(app.state.resolver.close)
 
     app = FastAPI(title="Douyin Shortcut Resolver", version="0.2.0", lifespan=lifespan,

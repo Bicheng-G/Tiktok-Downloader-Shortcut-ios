@@ -2,6 +2,8 @@
 
 复制抖音分享链接 → 运行快捷指令 → 自建 API 解析 → iPhone 下载并存入「照片」。也可从分享菜单运行。
 
+也可启用私人 Telegram Bot：把链接或完整分享文案发给 Bot，它会返回可点击的 MP4 下载地址和“重新获取”按钮。Bot 与 Shortcut 共用解析器；视频仍由手机直接从 CDN 下载。配置方法见 [Telegram Bot 说明](docs/telegram-bot.md)。
+
 当前支持中国版抖音的公开视频，接受网页 URL、手机短链接和完整分享文案。国际版 TikTok、图文、直播、私密或下架作品不在支持范围。精选首页本身不是单条视频链接，需带 `modal_id`。
 
 ```text
@@ -79,6 +81,6 @@ douyin resolve '完整分享文案或视频链接' --engine http
 douyin download 'https://www.douyin.com/jingxuan?modal_id=7688235974236654911' --channel chromium
 ```
 
-50 项离线测试通过。两个用户样例已通过新版 API 完整下载并用 ffprobe 验证 H.264 + AAC；重复解析只启动一次浏览器。两种 Docker 镜像均完成构建、启动、鉴权和真实解析检查；Linux / Chromium 兜底及容器外读取返回的 MP4 地址也通过。实体 iPhone 导入、保存照片仍需验证。GitHub Actions 已配置离线测试、快捷指令构建一致性及镜像启动检查，尚未在远端运行。
+离线测试已覆盖解析服务、Shortcut 和 Telegram Bot。两个用户样例已通过新版 API 完整下载并用 ffprobe 验证 H.264 + AAC；重复解析只启动一次浏览器。两种 Docker 镜像均完成构建、启动、鉴权和真实解析检查；Linux / Chromium 兜底及容器外读取返回的 MP4 地址也通过。实体 iPhone 导入、保存照片，以及 Telegram 手机端点击下载仍需验证。GitHub Actions 已配置离线测试、快捷指令构建一致性及镜像启动检查，尚未在远端运行。
 
 MIT 许可证。发布给其他人时分发签名后的空配置模板，各自填写后端配置；不要在公开快捷指令中嵌入你自己的 Token。
