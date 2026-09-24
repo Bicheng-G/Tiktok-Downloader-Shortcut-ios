@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import Mock
+import time
 
 from fastapi.testclient import TestClient
 
@@ -77,6 +78,25 @@ class ServerTests(unittest.TestCase):
 
     def test_startup_requires_token_and_valid_settings(self):
         for settings in (Settings(), Settings(token="short"), Settings(token=TOKEN, engine="x"),
-                         Settings(token=TOKEN, timeout=0), Settings(token=TOKEN, cache_ttl=999)):
+                         Settings(token=TOKEN, timeout=0), Settings(token=TOKEN, cache_ttl=999),
+                         Settings(token=TOKEN, telegram_token="123:abc"),
+                         Settings(token=TOKEN, telegram_user_ids=(123,)),
+                         Settings(token=TOKEN, telegram_token="123:abc", telegram_user_ids=(-1,))):
             with self.assertRaises(ValueError):
                 create_app(settings)
+
+    def test_enabled_bot_shares_resolver_lifecycle(self):
+        class PollAPI:
+            def call(self, method, payload):
+                if method == "getUpdates":
+                    time.sleep(0.02)
+                    return []
+                return True
+
+        shared = Mock()
+        app = create_app(Settings(token=TOKEN, telegram_token="123:abc",
+                                  telegram_user_ids=(123,)), shared, PollAPI())
+        with TestClient(app) as client:
+            self.assertEqual(client.get("/health").status_code, 200)
+            self.assertIs(app.state.telegram_bot.resolver, shared)
+        shared.close.assert_called_once()

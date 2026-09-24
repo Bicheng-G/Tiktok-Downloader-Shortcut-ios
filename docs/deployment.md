@@ -66,6 +66,8 @@ python -m douyin_resolver serve --host 127.0.0.1 --port 8000
 | `DOUYIN_BROWSER_CHANNEL` | `chromium` | 可用 `chrome` 或 `msedge`，需已安装对应浏览器 |
 | `DOUYIN_BROWSER_TIMEOUT` | `35` | 浏览器等待详情秒数，1–90；不包含短链、HTTP、CDN 请求耗时 |
 | `DOUYIN_CACHE_TTL` | `45` | 0–300 秒，0 禁用缓存 |
+| `TELEGRAM_BOT_TOKEN` | 空 | 可选，BotFather 提供；与允许用户 ID 同时设置才启用 Telegram Bot |
+| `TELEGRAM_ALLOWED_USER_IDS` | 空 | 可选，逗号分隔的数字用户 ID；详情见 [Telegram Bot 说明](telegram-bot.md) |
 | `PORT` | `8000` | Docker 启动端口；直接运行用 Uvicorn `--port` |
 
 主机上的 HTTPS 代理示例（Caddy）：
