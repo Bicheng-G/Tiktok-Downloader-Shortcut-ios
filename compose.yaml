@@ -1,0 +1,14 @@
+services:
+  resolver:
+    build:
+      context: .
+      target: auto
+    init: true
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    shm_size: "256mb"
+    mem_limit: "1g"

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.douyin-profile/
+downloads/
+artifacts/
+*.egg-info/
+build/
+dist/
+.env
+.env.*
+!.env.example

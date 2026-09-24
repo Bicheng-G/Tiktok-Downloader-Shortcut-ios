@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "douyin-video-resolver"
+version = "0.2.0"
+description = "HTTP-first Douyin resolver and self-hosted API for iOS Shortcuts"
+requires-python = ">=3.10"
+dependencies = ["requests>=2.31,<3", "fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
+license = "MIT"
+
+[project.optional-dependencies]
+browser = ["playwright==1.58.0"]
+test = ["httpx>=0.27,<1"]
+
+[project.scripts]
+douyin = "douyin_resolver.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["douyin_resolver*"]
