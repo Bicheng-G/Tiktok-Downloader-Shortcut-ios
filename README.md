@@ -26,4 +26,5 @@
   * iPhone 8 或更新的机型可以使用back tap（敲击手机背部两下）激活指令，可以不用切换界面
 
 
-[WIP]
+[TODO]
+* Update URL parser
