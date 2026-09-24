@@ -30,7 +30,7 @@ jobs:
         run: |
           docker run -d --name resolver -p 8000:8000 -e DOUYIN_API_TOKEN=ci-only-not-a-deployment-token resolver:test
           trap 'docker logs resolver; docker rm -f resolver' EXIT
-          curl --retry 10 --retry-connrefused --retry-delay 2 --fail http://localhost:8000/health
+          curl --retry 15 --retry-all-errors --retry-delay 2 --max-time 5 --fail --silent --show-error http://localhost:8000/health
           if [ '${{ matrix.target }}' = auto ]; then
             docker exec resolver python -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(); b.close(); p.stop()"
           fi
