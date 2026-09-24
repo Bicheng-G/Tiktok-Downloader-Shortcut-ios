@@ -1,0 +1,6 @@
+**
+!pyproject.toml
+!LICENSE
+!douyin_resolver/
+!douyin_resolver/*.py
+!Dockerfile
