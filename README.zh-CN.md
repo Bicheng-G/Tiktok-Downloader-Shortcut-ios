@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-复制抖音分享链接或从 iOS 分享菜单运行快捷指令，通过自建 API 解析视频，再由 iPhone 直接从 CDN 下载 MP4 并存入「照片」。服务器不转发视频文件。
+复制抖音或 YouTube 视频链接，或从 iOS 分享菜单运行快捷指令，通过自建 API 解析视频，再由 iPhone 直接从 CDN 下载 MP4 并存入「照片」。服务器不转发视频文件。
 
 本项目支持**中国版抖音**的公开视频，接受视频网页 URL、`v.douyin.com` 短链接和完整分享文案。不支持国际版 TikTok、图文、直播、私密或已下架作品。`douyin.com/jingxuan` 页面需包含指定单条视频的 `modal_id`。
 
@@ -12,14 +12,24 @@ https://v.douyin.com/p-rXmps4nWc/
 9.92 复制打开抖音，看看【晓辉博士的作品】… https://v.douyin.com/p-rXmps4nWc/ …
 ```
 
+也接受 YouTube 和 YouTube Music 链接，包括省略 `https://` 的链接：
+
+```text
+music.youtube.com/watch?v=3QZOazpGIQc
+youtube.com/watch?v=3QZOazpGIQc
+https://youtu.be/3QZOazpGIQc
+```
+
+YouTube 后端需安装 Deno 2.3+ 或 Node.js 22+；两个 Docker target 均已包含 Deno。只返回含声音的完整 MP4，清晰度可能有限；直链可能绑定服务器 IP，因此其他网络上的 iPhone 不一定能下载。YouTube Music 解析为对应视频，不输出纯音频。配置和限制见 [YouTube 解析说明](docs/youtube.md)。已安装的快捷指令需重新构建、签名并导入，才能识别这些链接。
+
 ## 工作流程
 
-1. 快捷指令从分享输入或剪贴板中提取抖音链接。
+1. 快捷指令从分享输入或剪贴板中提取抖音或 YouTube 链接。
 2. 使用你的 API Token 将链接发送至自建服务的 `POST /resolve`。
 3. 解析器先检查短期缓存、尝试 HTTP；必要时复用 Chromium 浏览器。
 4. API 返回临时 MP4 地址及 CDN 请求头；iPhone 下载视频并保存到「照片」。
 
-默认 `auto` 模式仅在 HTTP 无法找到并验证目标视频时启动浏览器。`http` 模式无需 Playwright，但支持的视频较少；`browser` 模式始终使用浏览器。解析器会核对视频 ID，不会把推荐的其他视频当作结果，也无需读取个人 Chrome Cookie。实测和限制见[解析研究](docs/resolver.md)。
+抖音的默认 `auto` 模式仅在 HTTP 无法找到并验证目标视频时启动浏览器。`http` 模式无需 Playwright，但支持的视频较少；`browser` 模式使用浏览器。YouTube 在三种模式下均使用 yt-dlp。解析器会核对视频 ID，不会把推荐的其他视频当作结果，也无需读取个人 Chrome Cookie。实测和限制见[解析研究](docs/resolver.md)。
 
 ## 1. 部署 API
 
@@ -59,7 +69,7 @@ sh scripts/sign_shortcut.sh
 
 ## 本地开发
 
-需要 Python 3.10+，建议使用 Python 3.12。
+需要 Python 3.11+，建议使用 Python 3.12。YouTube 另需在 PATH 中提供 Deno 2.3+ 或 Node.js 22+。
 
 ```sh
 python -m venv .venv
@@ -78,6 +88,6 @@ douyin resolve 'https://v.douyin.com/p-rXmps4nWc/' --engine http
 douyin download 'https://www.douyin.com/jingxuan?modal_id=7688235974236654911' --channel chromium
 ```
 
-CDN 地址会过期。成功读取文件头不保证完整下载、最高画质或无水印。可用性可能随网络以及抖音和 CDN 的变化而改变。请勿在公开分享的快捷指令中填写个人 API Token。
+CDN 地址会过期。成功读取文件头不保证完整下载、最高画质或无水印。可用性可能随网络以及平台和 CDN 的变化而改变。请勿在公开分享的快捷指令中填写个人 API Token。
 
 使用 MIT 许可证，详见 [LICENSE](LICENSE)。

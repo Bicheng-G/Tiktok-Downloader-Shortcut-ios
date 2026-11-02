@@ -18,10 +18,12 @@ class ResolverError(Exception):
         self.code = code
 
 
+YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
 PAGE_HOSTS = {"douyin.com", "www.douyin.com", "www-hj.douyin.com",
-              "v.douyin.com", "iesdouyin.com", "www.iesdouyin.com"}
+              "v.douyin.com", "iesdouyin.com", "www.iesdouyin.com"} | YOUTUBE_HOSTS
 CDN_SUFFIXES = ("douyinvod.com", "zjcdn.com", "douyin.com", "iesdouyin.com",
-                "douyinstatic.com", "bytecdn.cn", "bytecdn.com", "bytedance.com")
+                "douyinstatic.com", "bytecdn.cn", "bytecdn.com", "bytedance.com",
+                "googlevideo.com")
 DEFAULT_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36")
 
@@ -38,18 +40,32 @@ def valid_url(url: str, *, media: bool = False) -> bool:
 
 
 def extract_url(text: str) -> str:
-    """Accept a link, or the full text copied from the Douyin share sheet."""
-    for match in re.finditer(r'https?://[^\s<>"\u3000]+', text):
+    """Accept a supported link or a complete share message."""
+    pattern = (r'https?://[^\s<>"\u3000]+|'
+               r'(?<![\w./@:-])(?:(?:www\.|m\.|music\.)?youtube\.com|youtu\.be)/[^\s<>"\u3000]+')
+    for match in re.finditer(pattern, text, re.IGNORECASE):
         url = match.group().rstrip(".,;!?，。；！？、）)]}>'\"：")
+        if not url.lower().startswith(("http://", "https://")):
+            url = "https://" + url
         if valid_url(url):
             return url
-    raise ResolverError("INVALID_URL", "请输入抖音视频链接或含链接的分享文案。")
+    raise ResolverError("INVALID_URL", "请输入抖音或 YouTube 视频链接，或含链接的分享文案。")
 
 
 def video_id(url: str) -> str | None:
     if not valid_url(url):
         return None
     p = urlsplit(url)
+    if p.hostname.lower() in YOUTUBE_HOSTS:
+        if p.hostname.lower() == "youtu.be":
+            value = p.path.strip("/") if p.path.count("/") <= 2 else ""
+        elif p.path == "/watch":
+            values = parse_qs(p.query).get("v", [])
+            value = values[0] if len(values) == 1 else ""
+        else:
+            match = re.fullmatch(r"/(?:shorts|embed|live)/([A-Za-z0-9_-]{11})/?", p.path)
+            value = match.group(1) if match else ""
+        return value if re.fullmatch(r"[A-Za-z0-9_-]{11}", value) else None
     m = re.fullmatch(r"/(?:video|share/video)/(\d{10,25})/?", p.path)
     if m:
         return m.group(1)
@@ -85,6 +101,10 @@ def checked_get(session, url, *, media=False, headers=None, timeout=25):
 def normalize(text: str, session=None) -> tuple[str, str]:
     url = extract_url(text)
     ident = video_id(url)
+    if urlsplit(url).hostname.lower() in YOUTUBE_HOSTS:
+        if not ident:
+            raise ResolverError("VIDEO_URL_REQUIRED", "请提供 YouTube 单条视频链接。")
+        return ident, f"https://www.youtube.com/watch?v={ident}"
     if not ident and urlsplit(url).hostname == "v.douyin.com":
         own = session is None
         session = session or requests.Session()

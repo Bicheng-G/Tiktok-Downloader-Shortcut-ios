@@ -39,7 +39,7 @@ def main():
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
-    parser = argparse.ArgumentParser(description="抖音视频链接 → CDN 解析 → 完整 MP4 文件")
+    parser = argparse.ArgumentParser(description="抖音 / YouTube 视频链接 → CDN 解析 → 完整 MP4 文件")
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("resolve", "download"):
         command = commands.add_parser(name)

@@ -2,6 +2,7 @@
 FROM python:3.12-slim AS http
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 DOUYIN_ENGINE=http
 WORKDIR /app
+COPY --from=denoland/deno:bin-2.9.8 /deno /usr/local/bin/deno
 COPY pyproject.toml LICENSE ./
 COPY douyin_resolver ./douyin_resolver
 RUN pip install --no-cache-dir .
@@ -15,6 +16,7 @@ CMD ["sh", "-c", "exec uvicorn douyin_resolver.server:create_app --factory --hos
 FROM mcr.microsoft.com/playwright/python:v1.58.0-noble AS auto
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 DOUYIN_ENGINE=auto DOUYIN_BROWSER_CHANNEL=chromium
 WORKDIR /app
+COPY --from=denoland/deno:bin-2.9.8 /deno /usr/local/bin/deno
 COPY pyproject.toml LICENSE ./
 COPY douyin_resolver ./douyin_resolver
 RUN pip install --no-cache-dir '.[browser]'

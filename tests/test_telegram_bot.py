@@ -251,6 +251,22 @@ class TelegramBotTests(unittest.IsolatedAsyncioTestCase):
         self.resolver.resolve.assert_not_called()
         self.assertEqual([name for name, _ in self.api.calls], ["sendMessage", "sendMessage"])
 
+    async def test_youtube_link_refresh_and_failed_retry_keep_platform(self):
+        ident = "3QZOazpGIQc"
+        url = f"https://www.youtube.com/watch?v={ident}"
+        result = video(A)
+        result.id, result.page_url = ident, url
+        self.resolver.resolve.return_value = result
+        await self.bot.handle_job(123, f"music.youtube.com/watch?v={ident}", None, False)
+        data = self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][1][0]["callback_data"]
+        self.assertEqual(data, f"refresh:yt:{ident}")
+        await self.bot.accept_update(callback(data=data))
+        await self.bot.handle_job(*self.bot.queue.get_nowait())
+        self.resolver.resolve.assert_called_with(url, refresh=True)
+        self.resolver.resolve.side_effect = ResolverError("YOUTUBE_UNAVAILABLE", "暂时无法读取")
+        await self.bot.handle_job(123, url, 52, True)
+        self.assertEqual(self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][0][0]["callback_data"], data)
+
 
 class TelegramAPITests(unittest.TestCase):
     def test_rate_limit_preserves_retry_delay(self):

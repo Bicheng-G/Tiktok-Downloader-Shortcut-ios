@@ -7,6 +7,7 @@ from concurrent.futures import Future
 
 from .core import ResolverError, normalize, verify, video_from
 from .http_resolver import fetch
+from . import youtube
 
 
 class Resolver:
@@ -16,6 +17,7 @@ class Resolver:
         if engine not in ("auto", "http", "browser"):
             raise ValueError("engine must be auto, http or browser")
         self.engine, self.quality, self.check = engine, quality, check
+        self.timeout = timeout
         self.cache_ttl = max(0, cache_ttl)
         self.cache, self.inflight = OrderedDict(), {}
         self.lock = threading.Lock()
@@ -26,6 +28,9 @@ class Resolver:
             self.browser = BrowserWorker(timeout=timeout, channel=channel, headed=headed, profile=profile)
 
     def _uncached(self, ident, url):
+        if youtube.is_youtube(url):
+            video = youtube.fetch(ident, url, quality=self.quality, timeout=self.timeout)
+            return verify(video) if self.check else video
         if self.engine != "browser":
             try:
                 aweme, ua = fetch(ident)
@@ -45,18 +50,19 @@ class Resolver:
             raise ResolverError("RESOLVER_BUSY", "解析服务繁忙，请稍后重试。")
         try:
             ident, url = normalize(text)
+            key = ("youtube" if youtube.is_youtube(url) else "douyin", ident)
             with self.lock:
-                cached = self.cache.get(ident)
+                cached = self.cache.get(key)
                 if not refresh and cached and cached[0] > time.time():
                     result = copy.deepcopy(cached[1])
                     result.cache_hit = True
-                    self.cache.move_to_end(ident)
+                    self.cache.move_to_end(key)
                     return result
-                self.cache.pop(ident, None)
-                pending = self.inflight.get(ident)
+                self.cache.pop(key, None)
+                pending = self.inflight.get(key)
                 owner = pending is None
                 if owner:
-                    pending = self.inflight[ident] = Future()
+                    pending = self.inflight[key] = Future()
             if not owner:
                 return copy.deepcopy(pending.result())
             try:
@@ -66,7 +72,7 @@ class Resolver:
                     expiry = min(expiry, float(result.expires_at) - 60)
                 with self.lock:
                     if expiry > time.time():
-                        self.cache[ident] = (expiry, copy.deepcopy(result))
+                        self.cache[key] = (expiry, copy.deepcopy(result))
                         while len(self.cache) > 256:
                             self.cache.popitem(last=False)
                 pending.set_result(copy.deepcopy(result))
@@ -76,7 +82,7 @@ class Resolver:
                 raise
             finally:
                 with self.lock:
-                    self.inflight.pop(ident, None)
+                    self.inflight.pop(key, None)
         finally:
             self.slots.release()
 

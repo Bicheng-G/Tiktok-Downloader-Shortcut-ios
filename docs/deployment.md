@@ -12,6 +12,8 @@ ASGI 工厂：`douyin_resolver.server:create_app`。使用 **一个 Uvicorn work
 
 浏览器由专用线程管理，避免 Playwright 跨线程操作。同一浏览器同时处理一条新视频；忙时返回 429，HTTP 路径仍可工作。整个解析器最多接受 4 个进行中的请求，同 ID 请求合并。缓存最多 256 条，默认 45 秒，并提前 60 秒避开平台声明的过期时间。进程结束即清空；没有数据库、对象存储或服务器视频目录。
 
+上述模式控制抖音。YouTube 在全部模式下均调用 yt-dlp 子进程，并受相同并发和缓存限制；提取超时沿用 `DOUYIN_BROWSER_TIMEOUT`。两个 Docker target 都包含 Deno。直接运行 Python 时，另需将 Deno 2.3+ 或 Node.js 22+ 放入服务进程的 PATH；更新已有部署需重新安装项目依赖并重启服务，Docker 部署需重新构建镜像。详见 [YouTube 解析说明](youtube.md)。
+
 ## Docker
 
 默认镜像包含 Chromium，启动服务或健康检查不会启动浏览器。`Dockerfile` 的 Playwright 包版本和官方镜像版本保持一致，参见 [Playwright Docker 文档](https://playwright.dev/python/docs/docker)。Compose 为容器配置 init、256 MB 共享内存和 1 GB 内存上限；这是起始配置，不是实测最低内存需求。

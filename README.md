@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md)
 
-Save a public Douyin video to your iPhone's Photos library: copy a share link or use the iOS share sheet, run the Shortcut, and let your self-hosted API resolve the video. The iPhone downloads the MP4 directly from the CDN; the server does not relay the video file.
+Save a public Douyin or YouTube video to your iPhone's Photos library: copy a share link or use the iOS share sheet, run the Shortcut, and let your self-hosted API resolve the video. The iPhone downloads the MP4 directly from the CDN; the server does not relay the video file.
 
 This project is for **Douyin (the Chinese app)**. It accepts a video page URL, a `v.douyin.com` short link, or the full text of a Douyin share message. International TikTok, photo posts, livestreams, and private or removed videos are not supported. A `douyin.com/jingxuan` page needs a `modal_id` identifying a specific video.
 
@@ -12,14 +12,24 @@ https://v.douyin.com/p-rXmps4nWc/
 9.92 复制打开抖音，看看【晓辉博士的作品】… https://v.douyin.com/p-rXmps4nWc/ …
 ```
 
+YouTube and YouTube Music links are also accepted, including links without `https://`:
+
+```text
+music.youtube.com/watch?v=3QZOazpGIQc
+youtube.com/watch?v=3QZOazpGIQc
+https://youtu.be/3QZOazpGIQc
+```
+
+YouTube requires Deno 2.3+ or Node.js 22+ on the backend; both Docker targets include Deno. Only complete MP4s with audio are returned. Resolution may be limited, and signed URLs can be bound to the server's IP, so an iPhone on another network may be unable to download them. YouTube Music resolves the corresponding video, not an audio-only file. See the [YouTube notes](docs/youtube.md) for setup and limitations. Existing Shortcuts must be rebuilt, signed and imported again to recognize these links.
+
 ## How it works
 
-1. The Shortcut extracts a Douyin link from its share-sheet input or the clipboard.
+1. The Shortcut extracts a Douyin or YouTube link from its share-sheet input or the clipboard.
 2. It sends the link and your API token to your own `POST /resolve` endpoint.
 3. The resolver checks a short-lived cache, tries HTTP first, and uses a reusable Chromium browser if needed.
 4. The API returns a temporary MP4 URL and the CDN request headers. The iPhone downloads the video and saves it to Photos.
 
-The default `auto` engine starts the browser only when the HTTP route cannot find and verify the requested video. `http` runs without Playwright but supports fewer videos; `browser` always uses the browser. The resolver checks the requested video ID rather than accepting an unrelated recommendation. It does not need your personal Chrome cookies. See the [resolver notes](docs/resolver.md) for test results and limitations (Chinese).
+For Douyin, the default `auto` engine starts the browser only when the HTTP route cannot find and verify the requested video. `http` runs without Playwright but supports fewer videos; `browser` uses the browser. YouTube uses yt-dlp in all three modes. The resolver checks the requested video ID rather than accepting an unrelated recommendation. It does not need your personal Chrome cookies. See the [resolver notes](docs/resolver.md) for test results and limitations (Chinese).
 
 ## 1. Deploy the API
 
@@ -59,7 +69,7 @@ Set both `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_IDS` in `.env`, then re
 
 ## Develop locally
 
-Python 3.10+ is required; Python 3.12 is recommended.
+Python 3.11+ is required; Python 3.12 is recommended. YouTube also requires Deno 2.3+ or Node.js 22+ in PATH.
 
 ```sh
 python -m venv .venv
@@ -78,6 +88,6 @@ douyin resolve 'https://v.douyin.com/p-rXmps4nWc/' --engine http
 douyin download 'https://www.douyin.com/jingxuan?modal_id=7688235974236654911' --channel chromium
 ```
 
-CDN URLs expire. A successful header check does not guarantee a complete download, maximum quality, or a watermark-free file. Availability can vary by network and by changes to Douyin or its CDN. Do not put your personal API token in a publicly shared Shortcut.
+CDN URLs expire. A successful header check does not guarantee a complete download, maximum quality, or a watermark-free file. Availability can vary by network and by changes to the platform or its CDN. Do not put your personal API token in a publicly shared Shortcut.
 
 MIT licensed. See [LICENSE](LICENSE).

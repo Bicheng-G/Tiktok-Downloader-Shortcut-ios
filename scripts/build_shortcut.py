@@ -9,8 +9,10 @@ from uuid import NAMESPACE_URL, uuid5
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME = "TikTok Downloader"
-URL_PATTERN = (r'https?://(?:v\.douyin\.com|(?:www\.)?douyin\.com|www-hj\.douyin\.com|'
-               r'(?:www\.)?iesdouyin\.com)/[^\s<>"，。；！？、）)\]}]+')
+URL_PATTERN = (r'(?:https?://(?:v\.douyin\.com|(?:www\.)?douyin\.com|www-hj\.douyin\.com|'
+               r'(?:www\.)?iesdouyin\.com)|'
+               r'(?<![\w./@:-])(?:https?://)?(?:(?:www\.|m\.|music\.)?youtube\.com|youtu\.be))'
+               r'/[^\s<>"，。；！？、）)\]}]+')
 
 
 def ident(label):
@@ -65,9 +67,9 @@ def workflow():
                    WFGetDictionaryValueType="Value")
 
     add("comment", "About", WFCommentActionText=(
-        "抖音视频 → 自建解析 API → 存储到照片。\n"
+        "抖音 / YouTube 视频 → 自建解析 API → 存储到照片。\n"
         "在下方两个文本动作填写 API /resolve 地址和你自己的 Token。\n"
-        "优先读取分享输入，否则读取剪贴板；只有匹配的抖音链接会发往 API。\n"
+        "优先读取分享输入，否则读取剪贴板；只有支持的视频链接会发往 API。\n"
         "首次运行请允许网络访问和添加照片。发布副本前清除自己的 Token。"))
     endpoint = add("gettext", "API Endpoint", WFTextActionText="https://YOUR_BACKEND.example/resolve")
     token = add("gettext", "API Token", WFTextActionText="YOUR_API_TOKEN")
@@ -82,7 +84,7 @@ def workflow():
                   WFMatchTextCaseSensitive=False,
                   text=attachment({"Type": "Variable", "VariableName": "ShareText"}))
     condition("Missing link", matches, 101)
-    add("showresult", "Missing link message", Text=text("请先复制抖音视频分享链接，或从分享菜单运行此快捷指令。"))
+    add("showresult", "Missing link message", Text=text("请先复制抖音或 YouTube 视频链接，或从分享菜单运行此快捷指令。"))
     add("exit", "Stop without link")
     branch("Missing link", 2)
     link = add("getitemfromlist", "Video link", WFInput=attachment(matches), WFItemSpecifier="First Item")
@@ -104,7 +106,7 @@ def workflow():
                 ShowHeaders=True, WFHTTPHeaders=dictionary({"User-Agent": text(ua), "Referer": text(referer)}))
     # The API bearer token is deliberately absent from the request to the CDN.
     add("savetocameraroll", "Saved video", WFInput=attachment(video))
-    add("notification", "Success", WFNotificationActionTitle="抖音下载完成",
+    add("notification", "Success", WFNotificationActionTitle="视频下载完成",
         WFNotificationActionBody="视频已存储到照片。", WFNotificationActionSound=False)
     return {
         "WFWorkflowName": NAME,

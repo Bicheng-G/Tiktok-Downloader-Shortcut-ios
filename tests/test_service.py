@@ -58,7 +58,7 @@ class ServiceTests(unittest.TestCase):
             self.assertEqual(cached.candidates[0].url, A)
             service.resolve(PAGE, refresh=True)
             self.assertEqual(run.call_count, 2)
-            service.cache[ID] = (time.time() - 1, video(A))
+            service.cache[("douyin", ID)] = (time.time() - 1, video(A))
             service.resolve(PAGE)
             self.assertEqual(run.call_count, 3)
 

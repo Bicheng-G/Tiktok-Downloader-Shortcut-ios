@@ -2,7 +2,7 @@
 
 `src/TikTok Downloader.shortcut` 已替换为新版**未签名 binary plist**。`src/TikTok Downloader.plist` 是同一流程的可读 XML；生成源是 `scripts/build_shortcut.py`。原已签名文件完整保留在 `src/legacy/TikTok Downloader-v1.shortcut`。
 
-新版不再调用 `devtool.top`，也不再用固定中文短语和字符串切割解析接口返回值。它读取分享输入或剪贴板，正则提取第一个抖音 URL，POST 给自建 API，通过字典取 `download_url` 和请求头，下载后存入 Photos。后端本身也接受完整分享文案；快捷指令仅发送提取后的链接。
+新版不再调用 `devtool.top`，也不再用固定中文短语和字符串切割解析接口返回值。它读取分享输入或剪贴板，正则提取第一个抖音或 YouTube URL，POST 给自建 API，通过字典取 `download_url` 和请求头，下载后存入 Photos。后端本身也接受完整分享文案；快捷指令仅发送提取后的链接。支持范围见 [YouTube 解析说明](youtube.md)；已安装的旧版需重新签名并导入，才能匹配新增平台链接。YouTube 和 YouTube Music 链接可以省略 `https://`。
 
 ## 在 Mac 上签名一次
 
@@ -49,7 +49,7 @@ UUID 固定，生成结果可重复，Git 可直接审阅 XML 差异。签名产
 如遇到系统导入兼容问题，可在 iPhone 上建立这些动作：
 
 1. 「获取剪贴板」；若要支持分享菜单，则优先使用「快捷指令输入」。
-2. 「匹配文本」提取链接：`https?://[^\s<>"，。；！？、）)]+`，取第一个抖音链接。也可以直接把完整文本交给 API。
+2. 「匹配文本」使用 `scripts/build_shortcut.py` 中的 `URL_PATTERN`，取第一个支持的视频链接。也可以直接把完整文本交给 API。
 3. 「获取 URL 内容」：POST 你的 `/resolve`；请求头 `Authorization: Bearer <你的 Token>`；正文类型 JSON，字段 `url` 设为上一步链接或分享文本。
 4. 从返回字典获取 `download_url`。若为空，显示 `message` 并停止。
 5. 从返回字典获取 `headers`，再取 `User-Agent`、`Referer`。
