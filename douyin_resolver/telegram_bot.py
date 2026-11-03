@@ -1,6 +1,7 @@
 """Optional private Telegram entry point for the existing resolver."""
 
 import asyncio
+from html import escape
 import logging
 import re
 import time
@@ -8,15 +9,19 @@ import time
 import requests
 
 from .core import ResolverError, video_id
+from .instagram import is_instagram
 from .youtube import is_youtube
 
 logger = logging.getLogger(__name__)
 REFRESH = re.compile(r"refresh:(\d{10,25})\Z")
+INSTAGRAM_REFRESH = re.compile(r"refresh:ig:([A-Za-z0-9_-]{1,28})\Z")
 YOUTUBE_REFRESH = re.compile(r"refresh:yt:([A-Za-z0-9_-]{11})\Z")
 
 
 def refresh_data(ident, url):
-    return f"refresh:yt:{ident}" if is_youtube(url) else f"refresh:{ident}"
+    if is_youtube(url):
+        return f"refresh:yt:{ident}"
+    return f"refresh:ig:{ident}" if is_instagram(url) else f"refresh:{ident}"
 
 
 class TelegramError(Exception):
@@ -129,13 +134,15 @@ class TelegramBot:
         if callback:
             data = callback.get("data")
             match = REFRESH.fullmatch(data) if isinstance(data, str) else None
+            ig_match = INSTAGRAM_REFRESH.fullmatch(data) if isinstance(data, str) else None
             yt_match = YOUTUBE_REFRESH.fullmatch(data) if isinstance(data, str) else None
-            match = yt_match or match
+            match = yt_match or ig_match or match
             if not match or not isinstance(message.get("message_id"), int):
                 await self.call("answerCallbackQuery", callback_query_id=callback["id"],
                                 text="此按钮已失效，请重新发送视频链接。")
                 return
             url = (f"https://www.youtube.com/watch?v={match.group(1)}" if yt_match
+                   else f"https://www.instagram.com/reel/{match.group(1)}/" if ig_match
                    else f"https://www.douyin.com/video/{match.group(1)}")
             job = (chat_id, url,
                    message["message_id"], True)
@@ -145,11 +152,11 @@ class TelegramBot:
                 content = ""
             if content.startswith(("/start", "/help")):
                 await self.call("sendMessage", chat_id=chat_id,
-                                text="发送抖音或 YouTube 视频链接或完整分享文案，我会返回下载链接。")
+                                text="发送抖音、Instagram 或 YouTube 视频链接，我会返回下载链接。")
                 return
             if not content or len(content) > 8192:
                 await self.call("sendMessage", chat_id=chat_id,
-                                text="请发送抖音或 YouTube 视频链接或完整分享文案（最多 8192 字）。")
+                                text="请发送抖音、Instagram 或 YouTube 视频链接、完整分享文案（最多 8192 字）。")
                 return
             job = (chat_id, content, None, False, message.get("message_id"))
 
@@ -225,13 +232,18 @@ class TelegramBot:
             return
         title = (video.title or "无标题").strip()[:150]
         author = (video.author or "未知").strip()[:80]
-        body = (f"{title}\n作者：{author}\n\n"
+        mp4_url = video.candidates[0].url
+        # Keep signed URLs intact in an explicit text link. A short label avoids
+        # exceeding Telegram's message length limit with long CDN query strings.
+        body = (f"{escape(title)}\n作者：{escape(author)}\n\n"
+                f'<a href="{escape(mp4_url, quote=True)}">MP4 直链</a>\n'
+                "长按上方链接可查看分享或复制选项。\n\n"
                 "点击“打开 MP4”后，在 Telegram 浏览器右上角 ⋯ 菜单选择“Save to Files”保存视频。"
                 "地址可能过期；失效时点击“重新获取”。")
         markup = {"inline_keyboard": [
-            [{"text": "打开 MP4", "url": video.candidates[0].url}],
+            [{"text": "打开 MP4", "url": mp4_url}],
             [{"text": "重新获取", "callback_data": refresh_data(video.id, video.page_url)}],
         ]}
         await self.call("editMessageText", chat_id=chat_id, message_id=message_id,
-                        text=body, reply_markup=markup,
-                        link_preview_options={"is_disabled": True})
+                        text=body, parse_mode="HTML", reply_markup=markup,
+                        link_preview_options={"is_disabled": False, "url": mp4_url})

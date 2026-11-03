@@ -50,6 +50,8 @@ def create_app(settings=None, resolver=None, telegram_api=None):
         raise ValueError("Set DOUYIN_API_TOKEN to at least 24 ASCII characters without whitespace")
     if settings.engine not in ("auto", "http", "browser"):
         raise ValueError("DOUYIN_ENGINE must be auto, http or browser")
+    if settings.channel not in ("chromium", "chrome", "msedge"):
+        raise ValueError("DOUYIN_BROWSER_CHANNEL must be chromium, chrome or msedge")
     if not 1 <= settings.timeout <= 90 or not 0 <= settings.cache_ttl <= 300:
         raise ValueError("Browser timeout must be 1..90; cache TTL must be 0..300")
     if bool(settings.telegram_token) != bool(settings.telegram_user_ids):

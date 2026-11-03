@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "douyin-video-resolver"
 version = "0.2.0"
-description = "Douyin and YouTube video resolver and self-hosted API for iOS Shortcuts"
+description = "Douyin, Instagram and YouTube video resolver and self-hosted API for iOS Shortcuts"
 requires-python = ">=3.11"
 dependencies = ["requests>=2.31,<3", "fastapi>=0.115,<1", "uvicorn>=0.30,<1", "yt-dlp[default]>=2026.10.26,<2027"]
 license = "MIT"

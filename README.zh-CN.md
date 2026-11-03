@@ -2,13 +2,14 @@
 
 [English](README.md)
 
-复制抖音或 YouTube 视频链接，或从 iOS 分享菜单运行快捷指令，通过自建 API 解析视频，再由 iPhone 直接从 CDN 下载 MP4 并存入「照片」。服务器不转发视频文件。
+复制抖音、Instagram 或 YouTube 视频链接，或从 iOS 分享菜单运行快捷指令，通过自建 API 解析视频，再由 iPhone 直接从 CDN 下载 MP4 并存入「照片」。服务器不转发视频文件。
 
-本项目支持**中国版抖音**的公开视频，接受视频网页 URL、`v.douyin.com` 短链接和完整分享文案。不支持国际版 TikTok、图文、直播、私密或已下架作品。`douyin.com/jingxuan` 页面需包含指定单条视频的 `modal_id`。
+本项目支持**中国版抖音**的公开视频，以及 **Instagram 公开 Reel 和单视频帖子**，接受视频网页 URL、`v.douyin.com` 短链接和完整分享文案。Instagram 支持 `/reel/`、`/reels/`、`/p/`、`/tv/` 链接，解析前移除 `stkn` 等分享参数。不支持国际版 TikTok、图片或轮播帖子、Instagram Stories、直播、私密或已下架作品。`douyin.com/jingxuan` 页面需包含指定单条视频的 `modal_id`。
 
 ```text
 https://www.douyin.com/jingxuan?modal_id=7688235974236654911
 https://v.douyin.com/p-rXmps4nWc/
+https://www.instagram.com/reel/DcaIKqURjoi/?stkn=MXVmZDF2aWdvZng0dQ==
 9.92 复制打开抖音，看看【晓辉博士的作品】… https://v.douyin.com/p-rXmps4nWc/ …
 ```
 
@@ -24,12 +25,12 @@ YouTube 后端需安装 Deno 2.3+ 或 Node.js 22+；两个 Docker target 均已�
 
 ## 工作流程
 
-1. 快捷指令从分享输入或剪贴板中提取抖音或 YouTube 链接。
+1. 快捷指令从分享输入或剪贴板中提取抖音、Instagram 或 YouTube 链接。
 2. 使用你的 API Token 将链接发送至自建服务的 `POST /resolve`。
 3. 解析器先检查短期缓存、尝试 HTTP；必要时复用 Chromium 浏览器。
 4. API 返回临时 MP4 地址及 CDN 请求头；iPhone 下载视频并保存到「照片」。
 
-抖音的默认 `auto` 模式仅在 HTTP 无法找到并验证目标视频时启动浏览器。`http` 模式无需 Playwright，但支持的视频较少；`browser` 模式使用浏览器。YouTube 在三种模式下均使用 yt-dlp。解析器会核对视频 ID，不会把推荐的其他视频当作结果，也无需读取个人 Chrome Cookie。实测和限制见[解析研究](docs/resolver.md)。
+抖音和 Instagram 的默认 `auto` 模式仅在 HTTP 无法找到并验证目标视频时启动浏览器。`http` 模式无需 Playwright，但支持的视频较少；`browser` 模式使用浏览器。YouTube 在三种模式下均使用 yt-dlp。解析器会核对视频 ID，不会把推荐的其他视频当作结果，也无需读取个人 Chrome Cookie。实测和限制见[解析研究](docs/resolver.md)。
 
 ## 1. 部署 API
 
@@ -67,6 +68,12 @@ sh scripts/sign_shortcut.sh
 
 在 `.env` 中同时设置 `TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_ALLOWED_USER_IDS`，然后重启服务。Bot 使用长轮询，服务器需能主动访问 `api.telegram.org`；它只响应允许名单中的私人聊天。配置见 [Telegram Bot 说明](docs/telegram-bot.md)。手机端通过 Telegram 保存视频仍需实机验证。
 
+## Windows 一键启动与后台运行
+
+本机已配置 `.venv` 和 `.env` 后，双击根目录的 **`Start Backend.cmd`** 即可后台启动，关闭启动窗口不影响服务。双击 **`Backend.cmd`** 打开管理菜单，可停止、重启、查看状态和日志，或开启／关闭登录 Windows 后自启。自启默认关闭。
+
+实测仅 API 待机约 61 MB，启动 Chromium 并关闭空白页后约 241 MB（进程树工作集总和，测试未启用 Telegram）。真实解析峰值未测，个人使用可先预留 0.5–1 GB。电脑睡眠或关机时服务不可用。详见 [Windows 后台运行](docs/windows.md)。
+
 ## 本地开发
 
 需要 Python 3.11+，建议使用 Python 3.12。YouTube 另需在 PATH 中提供 Deno 2.3+ 或 Node.js 22+。
@@ -85,8 +92,11 @@ python scripts/build_shortcut.py
 
 ```sh
 douyin resolve 'https://v.douyin.com/p-rXmps4nWc/' --engine http
+douyin resolve 'https://www.instagram.com/reel/DcaIKqURjoi/' --engine auto --channel chromium
 douyin download 'https://www.douyin.com/jingxuan?modal_id=7688235974236654911' --channel chromium
 ```
+
+Instagram 可能要求登录或限制匿名访问。解析器先尝试公开页面和 GraphQL 数据，`auto` 模式会使用独立浏览器兜底。CLI 可用 `douyin login --platform instagram --profile .instagram-profile` 保存登录状态，再用 `--engine browser --profile .instagram-profile` 解析；API 服务默认使用自己的匿名浏览器。详见 [Instagram 解析说明](docs/instagram.md)。
 
 CDN 地址会过期。成功读取文件头不保证完整下载、最高画质或无水印。可用性可能随网络以及平台和 CDN 的变化而改变。请勿在公开分享的快捷指令中填写个人 API Token。
 

@@ -7,7 +7,7 @@ from concurrent.futures import Future
 
 from .core import ResolverError, normalize, verify, video_from
 from .http_resolver import fetch
-from . import youtube
+from . import instagram, youtube
 
 
 class Resolver:
@@ -31,17 +31,21 @@ class Resolver:
         if youtube.is_youtube(url):
             video = youtube.fetch(ident, url, quality=self.quality, timeout=self.timeout)
             return verify(video) if self.check else video
+        is_instagram = instagram.is_instagram(url)
+        make_video = instagram.video_from if is_instagram else video_from
         if self.engine != "browser":
             try:
-                aweme, ua = fetch(ident)
-                video = video_from(aweme, ident, ua, self.quality)
+                aweme, ua = instagram.fetch(ident, url) if is_instagram else fetch(ident)
+                video = make_video(aweme, ident, ua, self.quality)
+                video.page_url = url
                 video.strategy = "http"
                 return verify(video) if self.check else video
             except ResolverError as exc:
                 if self.engine == "http" or exc.code == "UNSUPPORTED_MEDIA":
                     raise
         aweme, ua = self.browser.capture(ident, url)
-        video = video_from(aweme, ident, ua, self.quality)
+        video = make_video(aweme, ident, ua, self.quality)
+        video.page_url = url
         video.strategy = "browser"
         return verify(video) if self.check else video
 
@@ -50,7 +54,8 @@ class Resolver:
             raise ResolverError("RESOLVER_BUSY", "解析服务繁忙，请稍后重试。")
         try:
             ident, url = normalize(text)
-            key = ("youtube" if youtube.is_youtube(url) else "douyin", ident)
+            platform = "youtube" if youtube.is_youtube(url) else "instagram" if instagram.is_instagram(url) else "douyin"
+            key = (platform, ident)
             with self.lock:
                 cached = self.cache.get(key)
                 if not refresh and cached and cached[0] > time.time():

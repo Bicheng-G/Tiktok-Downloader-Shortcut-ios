@@ -2,13 +2,14 @@
 
 [简体中文](README.zh-CN.md)
 
-Save a public Douyin or YouTube video to your iPhone's Photos library: copy a share link or use the iOS share sheet, run the Shortcut, and let your self-hosted API resolve the video. The iPhone downloads the MP4 directly from the CDN; the server does not relay the video file.
+Save a public Douyin, Instagram or YouTube video to your iPhone's Photos library: copy a share link or use the iOS share sheet, run the Shortcut, and let your self-hosted API resolve the video. The iPhone downloads the MP4 directly from the CDN; the server does not relay the video file.
 
-This project is for **Douyin (the Chinese app)**. It accepts a video page URL, a `v.douyin.com` short link, or the full text of a Douyin share message. International TikTok, photo posts, livestreams, and private or removed videos are not supported. A `douyin.com/jingxuan` page needs a `modal_id` identifying a specific video.
+This project supports **Douyin (the Chinese app)** and **Instagram public Reels and single-video posts**. It accepts a video page URL, a `v.douyin.com` short link, or the full text of a share message. Instagram `/reel/`, `/reels/`, `/p/`, and `/tv/` links are accepted; tracking parameters such as `stkn` are removed before resolving. International TikTok, photo or carousel posts, Stories, livestreams, and private or removed videos are not supported. A `douyin.com/jingxuan` page needs a `modal_id` identifying a specific video.
 
 ```text
 https://www.douyin.com/jingxuan?modal_id=7688235974236654911
 https://v.douyin.com/p-rXmps4nWc/
+https://www.instagram.com/reel/DcaIKqURjoi/?stkn=MXVmZDF2aWdvZng0dQ==
 9.92 复制打开抖音，看看【晓辉博士的作品】… https://v.douyin.com/p-rXmps4nWc/ …
 ```
 
@@ -24,12 +25,12 @@ YouTube requires Deno 2.3+ or Node.js 22+ on the backend; both Docker targets in
 
 ## How it works
 
-1. The Shortcut extracts a Douyin or YouTube link from its share-sheet input or the clipboard.
+1. The Shortcut extracts a Douyin, Instagram or YouTube link from its share-sheet input or the clipboard.
 2. It sends the link and your API token to your own `POST /resolve` endpoint.
 3. The resolver checks a short-lived cache, tries HTTP first, and uses a reusable Chromium browser if needed.
 4. The API returns a temporary MP4 URL and the CDN request headers. The iPhone downloads the video and saves it to Photos.
 
-For Douyin, the default `auto` engine starts the browser only when the HTTP route cannot find and verify the requested video. `http` runs without Playwright but supports fewer videos; `browser` uses the browser. YouTube uses yt-dlp in all three modes. The resolver checks the requested video ID rather than accepting an unrelated recommendation. It does not need your personal Chrome cookies. See the [resolver notes](docs/resolver.md) for test results and limitations (Chinese).
+For Douyin and Instagram, the default `auto` engine starts the browser only when the HTTP route cannot find and verify the requested video. `http` runs without Playwright but supports fewer videos; `browser` uses the browser. YouTube uses yt-dlp in all three modes. The resolver checks the requested video ID rather than accepting an unrelated recommendation. It does not need your personal Chrome cookies. See the [resolver notes](docs/resolver.md) for test results and limitations (Chinese).
 
 ## 1. Deploy the API
 
@@ -67,6 +68,10 @@ You can also send a link or full share message to a private Telegram bot backed 
 
 Set both `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_IDS` in `.env`, then restart the service. The bot uses long polling, needs outbound access to `api.telegram.org`, and responds only to allowed users in private chats. See the [Telegram bot guide](docs/telegram-bot.md) (Chinese). Saving through Telegram on a phone still needs device testing.
 
+## Windows background operation
+
+After configuring `.venv` and `.env`, double-click **`Start Backend.cmd`** to start in the background. **`Backend.cmd`** opens controls for stop, restart, status, logs, and optional autostart after Windows sign-in (off by default). See [Windows background operation](docs/windows.md).
+
 ## Develop locally
 
 Python 3.11+ is required; Python 3.12 is recommended. YouTube also requires Deno 2.3+ or Node.js 22+ in PATH.
@@ -85,8 +90,11 @@ The CLI can resolve or download without the iOS Shortcut:
 
 ```sh
 douyin resolve 'https://v.douyin.com/p-rXmps4nWc/' --engine http
+douyin resolve 'https://www.instagram.com/reel/DcaIKqURjoi/' --engine auto --channel chromium
 douyin download 'https://www.douyin.com/jingxuan?modal_id=7688235974236654911' --channel chromium
 ```
+
+Instagram may require login or limit anonymous access. The parser tries public page/GraphQL metadata and falls back to its isolated browser in `auto` mode. For CLI use, you can save an Instagram login with `douyin login --platform instagram --profile .instagram-profile` and then resolve with `--engine browser --profile .instagram-profile`. The server uses its own anonymous browser context. See the [Instagram resolver notes](docs/instagram.md).
 
 CDN URLs expire. A successful header check does not guarantee a complete download, maximum quality, or a watermark-free file. Availability can vary by network and by changes to the platform or its CDN. Do not put your personal API token in a publicly shared Shortcut.
 

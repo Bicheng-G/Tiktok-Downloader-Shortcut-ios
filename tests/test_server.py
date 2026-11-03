@@ -85,6 +85,15 @@ class ServerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 create_app(settings)
 
+    def test_startup_rejects_invalid_browser_channel_with_clear_message(self):
+        with self.assertRaisesRegex(ValueError, "DOUYIN_BROWSER_CHANNEL.*chromium.*chrome.*msedge"):
+            create_app(Settings(token=TOKEN, channel="chrom"))
+
+    def test_supported_browser_channels_are_accepted(self):
+        for channel in ("chromium", "chrome", "msedge"):
+            with self.subTest(channel=channel):
+                create_app(Settings(token=TOKEN, channel=channel), resolver=Mock())
+
     def test_enabled_bot_shares_resolver_lifecycle(self):
         class PollAPI:
             def call(self, method, payload):

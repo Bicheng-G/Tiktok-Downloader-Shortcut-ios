@@ -12,7 +12,7 @@ ASGI 工厂：`douyin_resolver.server:create_app`。使用 **一个 Uvicorn work
 
 浏览器由专用线程管理，避免 Playwright 跨线程操作。同一浏览器同时处理一条新视频；忙时返回 429，HTTP 路径仍可工作。整个解析器最多接受 4 个进行中的请求，同 ID 请求合并。缓存最多 256 条，默认 45 秒，并提前 60 秒避开平台声明的过期时间。进程结束即清空；没有数据库、对象存储或服务器视频目录。
 
-上述模式控制抖音。YouTube 在全部模式下均调用 yt-dlp 子进程，并受相同并发和缓存限制；提取超时沿用 `DOUYIN_BROWSER_TIMEOUT`。两个 Docker target 都包含 Deno。直接运行 Python 时，另需将 Deno 2.3+ 或 Node.js 22+ 放入服务进程的 PATH；更新已有部署需重新安装项目依赖并重启服务，Docker 部署需重新构建镜像。详见 [YouTube 解析说明](youtube.md)。
+上述模式控制抖音和 Instagram。YouTube 在全部模式下均调用 yt-dlp 子进程，并受相同并发和缓存限制；提取超时沿用 `DOUYIN_BROWSER_TIMEOUT`。两个 Docker target 都包含 Deno。直接运行 Python 时，另需将 Deno 2.3+ 或 Node.js 22+ 放入服务进程的 PATH；更新已有部署需重新安装项目依赖并重启服务，Docker 部署需重新构建镜像。详见 [YouTube 解析说明](youtube.md)。
 
 ## Docker
 
@@ -60,6 +60,8 @@ python -m douyin_resolver serve --host 127.0.0.1 --port 8000
 ```
 
 直接运行 Python 不会自动加载 `.env`；请通过进程环境变量或服务管理器提供配置。纯 HTTP 只需 `pip install .` 并设置 `DOUYIN_ENGINE=http`。
+
+Windows 用户可使用根目录的 `Start Backend.cmd` 或 `Backend.cmd`；这些启动器会自动加载项目 `.env`，并支持后台运行与登录后自启，见 [Windows 后台运行](windows.md)。
 
 | 环境变量 | 默认 | 说明 |
 | --- | --- | --- |

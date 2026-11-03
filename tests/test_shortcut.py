@@ -19,6 +19,11 @@ class ShortcutTests(unittest.TestCase):
         self.assertEqual(re.findall(URL_PATTERN, USER_SHARE_TEXT), [USER_SHORT_URL])
         self.assertFalse(re.findall(URL_PATTERN, "https://douyin.com.evil.test/video/123456789012"))
 
+    def test_instagram_share_link(self):
+        url = "https://www.instagram.com/reel/DcaIKqURjoi/?stkn=MXVmZDF2aWdvZng0dQ=="
+        self.assertEqual(re.findall(URL_PATTERN, f"看这个视频 {url}，"), [url])
+        self.assertFalse(re.findall(URL_PATTERN, "https://instagram.com.evil.test/reel/DcaIKqURjoi/"))
+
     def test_every_variable_output_exists_and_control_flow_balances(self):
         seen, groups = set(), []
 

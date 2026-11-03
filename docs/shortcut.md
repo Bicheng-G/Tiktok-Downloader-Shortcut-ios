@@ -2,7 +2,7 @@
 
 `src/TikTok Downloader.shortcut` 已替换为新版**未签名 binary plist**。`src/TikTok Downloader.plist` 是同一流程的可读 XML；生成源是 `scripts/build_shortcut.py`。原已签名文件完整保留在 `src/legacy/TikTok Downloader-v1.shortcut`。
 
-新版不再调用 `devtool.top`，也不再用固定中文短语和字符串切割解析接口返回值。它读取分享输入或剪贴板，正则提取第一个抖音或 YouTube URL，POST 给自建 API，通过字典取 `download_url` 和请求头，下载后存入 Photos。后端本身也接受完整分享文案；快捷指令仅发送提取后的链接。支持范围见 [YouTube 解析说明](youtube.md)；已安装的旧版需重新签名并导入，才能匹配新增平台链接。YouTube 和 YouTube Music 链接可以省略 `https://`。
+新版不再调用 `devtool.top`，也不再用固定中文短语和字符串切割解析接口返回值。它读取分享输入或剪贴板，正则提取第一个抖音、Instagram 或 YouTube URL，POST 给自建 API，通过字典取 `download_url` 和请求头，下载后存入 Photos。后端本身也接受完整分享文案；快捷指令仅发送提取后的链接。支持范围见 [Instagram](instagram.md) 和 [YouTube 解析说明](youtube.md)；已安装的旧版需重新签名并导入，才能匹配新增平台链接。YouTube 和 YouTube Music 链接可以省略 `https://`。
 
 ## 在 Mac 上签名一次
 

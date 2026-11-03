@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .douyin-profile/
+.instagram-profile/
 downloads/
 artifacts/
 *.egg-info/

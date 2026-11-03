@@ -29,7 +29,7 @@ def login(args):
         context = p.chromium.launch_persistent_context(str(Path(args.profile).resolve()), **kwargs)
         try:
             page = context.new_page()
-            page.goto("https://www.douyin.com/", wait_until="domcontentloaded")
+            page.goto(f"https://www.{args.platform}.com/", wait_until="domcontentloaded")
             input("请在浏览器手动登录或验证；完成后回到终端按 Enter 保存登录状态。\n")
         finally:
             context.close()
@@ -39,7 +39,7 @@ def main():
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
-    parser = argparse.ArgumentParser(description="抖音 / YouTube 视频链接 → CDN 解析 → 完整 MP4 文件")
+    parser = argparse.ArgumentParser(description="抖音 / Instagram / YouTube 视频链接 → CDN 解析 → 完整 MP4 文件")
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("resolve", "download"):
         command = commands.add_parser(name)
@@ -53,6 +53,7 @@ def main():
     command.add_argument("--host", default="127.0.0.1")
     command.add_argument("--port", type=int, default=8765)
     command = commands.add_parser("login", help="手动登录独立浏览器配置")
+    command.add_argument("--platform", choices=("douyin", "instagram"), default="douyin")
     command.add_argument("--profile", default=".douyin-profile")
     command.add_argument("--channel", choices=("chrome", "msedge", "chromium"), default="chrome")
     args = parser.parse_args()

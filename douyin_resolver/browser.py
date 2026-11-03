@@ -84,6 +84,9 @@ class BrowserWorker:
 
 
 def capture_page(page, ident, url, timeout, browser_error):
+    from . import instagram
+    if instagram.is_instagram(url):
+        return instagram.capture_page(page, ident, url, timeout, browser_error)
     finished = []
 
     def on_finished(request):

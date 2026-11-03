@@ -10,7 +10,7 @@ from uuid import NAMESPACE_URL, uuid5
 ROOT = Path(__file__).resolve().parents[1]
 NAME = "TikTok Downloader"
 URL_PATTERN = (r'(?:https?://(?:v\.douyin\.com|(?:www\.)?douyin\.com|www-hj\.douyin\.com|'
-               r'(?:www\.)?iesdouyin\.com)|'
+               r'(?:www\.)?iesdouyin\.com|(?:www\.)?instagram\.com)|'
                r'(?<![\w./@:-])(?:https?://)?(?:(?:www\.|m\.|music\.)?youtube\.com|youtu\.be))'
                r'/[^\s<>"，。；！？、）)\]}]+')
 
@@ -67,7 +67,7 @@ def workflow():
                    WFGetDictionaryValueType="Value")
 
     add("comment", "About", WFCommentActionText=(
-        "抖音 / YouTube 视频 → 自建解析 API → 存储到照片。\n"
+        "抖音 / Instagram / YouTube 视频 → 自建解析 API → 存储到照片。\n"
         "在下方两个文本动作填写 API /resolve 地址和你自己的 Token。\n"
         "优先读取分享输入，否则读取剪贴板；只有支持的视频链接会发往 API。\n"
         "首次运行请允许网络访问和添加照片。发布副本前清除自己的 Token。"))
@@ -84,7 +84,7 @@ def workflow():
                   WFMatchTextCaseSensitive=False,
                   text=attachment({"Type": "Variable", "VariableName": "ShareText"}))
     condition("Missing link", matches, 101)
-    add("showresult", "Missing link message", Text=text("请先复制抖音或 YouTube 视频链接，或从分享菜单运行此快捷指令。"))
+    add("showresult", "Missing link message", Text=text("请先复制抖音、Instagram 或 YouTube 视频链接，或从分享菜单运行此快捷指令。"))
     add("exit", "Stop without link")
     branch("Missing link", 2)
     link = add("getitemfromlist", "Video link", WFInput=attachment(matches), WFItemSpecifier="First Item")

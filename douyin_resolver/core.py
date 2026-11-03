@@ -20,10 +20,12 @@ class ResolverError(Exception):
 
 YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
 PAGE_HOSTS = {"douyin.com", "www.douyin.com", "www-hj.douyin.com",
-              "v.douyin.com", "iesdouyin.com", "www.iesdouyin.com"} | YOUTUBE_HOSTS
+              "v.douyin.com", "iesdouyin.com", "www.iesdouyin.com",
+              "instagram.com", "www.instagram.com"} | YOUTUBE_HOSTS
+INSTAGRAM_HOSTS = {"instagram.com", "www.instagram.com"}
 CDN_SUFFIXES = ("douyinvod.com", "zjcdn.com", "douyin.com", "iesdouyin.com",
                 "douyinstatic.com", "bytecdn.cn", "bytecdn.com", "bytedance.com",
-                "googlevideo.com")
+                "cdninstagram.com", "fbcdn.net", "googlevideo.com")
 DEFAULT_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36")
 
@@ -49,7 +51,7 @@ def extract_url(text: str) -> str:
             url = "https://" + url
         if valid_url(url):
             return url
-    raise ResolverError("INVALID_URL", "请输入抖音或 YouTube 视频链接，或含链接的分享文案。")
+    raise ResolverError("INVALID_URL", "请输入抖音、Instagram 或 YouTube 视频链接，或含链接的分享文案。")
 
 
 def video_id(url: str) -> str | None:
@@ -66,6 +68,9 @@ def video_id(url: str) -> str | None:
             match = re.fullmatch(r"/(?:shorts|embed|live)/([A-Za-z0-9_-]{11})/?", p.path)
             value = match.group(1) if match else ""
         return value if re.fullmatch(r"[A-Za-z0-9_-]{11}", value) else None
+    if p.hostname.lower() in INSTAGRAM_HOSTS:
+        m = re.fullmatch(r"/(?:reels?|p|tv)/([A-Za-z0-9_-]{1,28})/?", p.path)
+        return m.group(1) if m else None
     m = re.fullmatch(r"/(?:video|share/video)/(\d{10,25})/?", p.path)
     if m:
         return m.group(1)
@@ -105,6 +110,12 @@ def normalize(text: str, session=None) -> tuple[str, str]:
         if not ident:
             raise ResolverError("VIDEO_URL_REQUIRED", "请提供 YouTube 单条视频链接。")
         return ident, f"https://www.youtube.com/watch?v={ident}"
+    if urlsplit(url).hostname.lower() in INSTAGRAM_HOSTS:
+        if not ident:
+            raise ResolverError("VIDEO_URL_REQUIRED", "请提供 Instagram 单条 Reel 或视频帖子链接。")
+        kind = urlsplit(url).path.split("/")[1]
+        kind = "reel" if kind == "reels" else kind
+        return ident, f"https://www.instagram.com/{kind}/{ident}/"
     if not ident and urlsplit(url).hostname == "v.douyin.com":
         own = session is None
         session = session or requests.Session()

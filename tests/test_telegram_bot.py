@@ -1,4 +1,5 @@
 import asyncio
+from html.parser import HTMLParser
 import time
 import unittest
 from unittest.mock import Mock, patch
@@ -7,7 +8,7 @@ import requests
 
 from douyin_resolver.core import ResolverError
 from douyin_resolver.telegram_bot import TelegramAPI, TelegramBot, TelegramError
-from test_core import A, ID, video
+from test_core import A, B, ID, video
 
 
 class FakeAPI:
@@ -55,14 +56,52 @@ class TelegramBotTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(buttons[1][0]["callback_data"], f"refresh:{ID}")
         self.assertEqual(payload["message_id"], 52)
         self.assertEqual(self.api.calls[0][1]["reply_parameters"]["message_id"], 7)
+        self.assertEqual(payload["parse_mode"], "HTML")
+        self.assertEqual(payload["link_preview_options"], {"is_disabled": False, "url": A})
+
+    async def test_share_link_preserves_long_signed_url_and_escapes_metadata(self):
+        url = A + '&extra="quoted"&token=' + 'x' * 4500
+        result = video(url)
+        result.title = '<b>Title</b> & 🎬'
+        result.author = '<Author> & Co'
+        self.resolver.resolve.return_value = result
+        await self.bot.handle_job(123, "link", None, False)
+        payload = self.api.calls[-1][1]
+        links, visible_text = [], []
+
+        class LinkParser(HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                self.assert_tag(tag)
+                links.append(dict(attrs)["href"])
+
+            @staticmethod
+            def assert_tag(tag):
+                if tag != "a":
+                    raise AssertionError(f"Unexpected HTML tag: {tag}")
+
+            def handle_data(self, data):
+                visible_text.append(data)
+
+        LinkParser().feed(payload["text"])
+        self.assertEqual(links, [url])
+        rendered = ''.join(visible_text)
+        self.assertIn(result.title, rendered)
+        self.assertIn(result.author, rendered)
+        self.assertLess(len(rendered), 4096)
+        self.assertEqual(payload["link_preview_options"]["url"], url)
+        self.assertEqual(payload["reply_markup"]["inline_keyboard"][0][0]["url"], url)
 
     async def test_refresh_forces_new_resolution(self):
+        self.resolver.resolve.return_value = video(B)
         await self.bot.accept_update(callback())
         await self.bot.handle_job(*self.bot.queue.get_nowait())
         self.resolver.resolve.assert_called_once_with(
             f"https://www.douyin.com/video/{ID}", refresh=True)
         self.assertEqual(self.api.calls[0][0], "answerCallbackQuery")
-        self.assertEqual(self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][0][0]["url"], A)
+        payload = self.api.calls[-1][1]
+        self.assertEqual(payload["reply_markup"]["inline_keyboard"][0][0]["url"], B)
+        self.assertEqual(payload["link_preview_options"]["url"], B)
+        self.assertIn(f'href="{B}"', payload["text"])
 
     async def test_private_allowlist_and_consecutive_messages(self):
         await self.bot.accept_update(message("first", user=999))
@@ -122,6 +161,44 @@ class TelegramBotTests(unittest.IsolatedAsyncioTestCase):
         await self.bot.handle_job(123, f"https://www.douyin.com/video/{ID}", 52, True)
         self.assertEqual(self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][0][0]
                          ["callback_data"], f"refresh:{ID}")
+
+    async def test_instagram_link_and_refresh_use_instagram(self):
+        ident = "DcaIKqURjoi"
+        url = f"https://www.instagram.com/reel/{ident}/"
+        result = video(A)
+        result.id, result.page_url = ident, url
+        self.resolver.resolve.return_value = result
+        await self.bot.accept_update(message(url + "?stkn=tracking"))
+        await self.bot.handle_job(*self.bot.queue.get_nowait())
+        data = self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][1][0]["callback_data"]
+        self.assertEqual(data, f"refresh:ig:{ident}")
+        await self.bot.accept_update(callback(data=data))
+        await self.bot.handle_job(*self.bot.queue.get_nowait())
+        self.resolver.resolve.assert_called_with(url, refresh=True)
+
+    async def test_instagram_failed_refresh_keeps_platform(self):
+        ident = "DcaIKqURjoi"
+        url = f"https://www.instagram.com/reel/{ident}/"
+        self.resolver.resolve.side_effect = ResolverError("LOGIN_REQUIRED", "需要登录")
+        await self.bot.handle_job(123, url, 52, True)
+        data = self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][0][0]["callback_data"]
+        self.assertEqual(data, f"refresh:ig:{ident}")
+
+    async def test_youtube_link_refresh_and_failed_retry_keep_platform(self):
+        ident = "3QZOazpGIQc"
+        url = f"https://www.youtube.com/watch?v={ident}"
+        result = video(A)
+        result.id, result.page_url = ident, url
+        self.resolver.resolve.return_value = result
+        await self.bot.handle_job(123, f"music.youtube.com/watch?v={ident}", None, False)
+        data = self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][1][0]["callback_data"]
+        self.assertEqual(data, f"refresh:yt:{ident}")
+        await self.bot.accept_update(callback(data=data))
+        await self.bot.handle_job(*self.bot.queue.get_nowait())
+        self.resolver.resolve.assert_called_with(url, refresh=True)
+        self.resolver.resolve.side_effect = ResolverError("YOUTUBE_UNAVAILABLE", "暂时无法读取")
+        await self.bot.handle_job(123, url, 52, True)
+        self.assertEqual(self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][0][0]["callback_data"], data)
 
     async def test_repeated_update_id_is_queued_once(self):
         update = {"update_id": 9, **message("one")}
@@ -250,22 +327,6 @@ class TelegramBotTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.bot.queue.qsize(), 0)
         self.resolver.resolve.assert_not_called()
         self.assertEqual([name for name, _ in self.api.calls], ["sendMessage", "sendMessage"])
-
-    async def test_youtube_link_refresh_and_failed_retry_keep_platform(self):
-        ident = "3QZOazpGIQc"
-        url = f"https://www.youtube.com/watch?v={ident}"
-        result = video(A)
-        result.id, result.page_url = ident, url
-        self.resolver.resolve.return_value = result
-        await self.bot.handle_job(123, f"music.youtube.com/watch?v={ident}", None, False)
-        data = self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][1][0]["callback_data"]
-        self.assertEqual(data, f"refresh:yt:{ident}")
-        await self.bot.accept_update(callback(data=data))
-        await self.bot.handle_job(*self.bot.queue.get_nowait())
-        self.resolver.resolve.assert_called_with(url, refresh=True)
-        self.resolver.resolve.side_effect = ResolverError("YOUTUBE_UNAVAILABLE", "暂时无法读取")
-        await self.bot.handle_job(123, url, 52, True)
-        self.assertEqual(self.api.calls[-1][1]["reply_markup"]["inline_keyboard"][0][0]["callback_data"], data)
 
 
 class TelegramAPITests(unittest.TestCase):

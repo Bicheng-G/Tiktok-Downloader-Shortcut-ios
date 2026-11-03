@@ -69,7 +69,7 @@
 				<key>UUID</key>
 				<string>1B3B6E24-8DA1-5FC9-AF94-57E6349A29B9</string>
 				<key>WFCommentActionText</key>
-				<string>抖音 / YouTube 视频 → 自建解析 API → 存储到照片。
+				<string>抖音 / Instagram / YouTube 视频 → 自建解析 API → 存储到照片。
 在下方两个文本动作填写 API /resolve 地址和你自己的 Token。
 优先读取分享输入，否则读取剪贴板；只有支持的视频链接会发往 API。
 首次运行请允许网络访问和添加照片。发布副本前清除自己的 Token。</string>
@@ -216,7 +216,7 @@
 				<key>UUID</key>
 				<string>CB8EAFA0-ED1F-5272-82A1-AF07D40C8D0A</string>
 				<key>WFMatchTextPattern</key>
-				<string>(?:https?://(?:v\.douyin\.com|(?:www\.)?douyin\.com|www-hj\.douyin\.com|(?:www\.)?iesdouyin\.com)|(?&lt;![\w./@:-])(?:https?://)?(?:(?:www\.|m\.|music\.)?youtube\.com|youtu\.be))/[^\s&lt;&gt;"，。；！？、）)\]}]+</string>
+				<string>(?:https?://(?:v\.douyin\.com|(?:www\.)?douyin\.com|www-hj\.douyin\.com|(?:www\.)?iesdouyin\.com|(?:www\.)?instagram\.com)|(?&lt;![\w./@:-])(?:https?://)?(?:(?:www\.|m\.|music\.)?youtube\.com|youtu\.be))/[^\s&lt;&gt;"，。；！？、）)\]}]+</string>
 				<key>WFMatchTextCaseSensitive</key>
 				<false/>
 				<key>text</key>
@@ -279,7 +279,7 @@
 					<key>Value</key>
 					<dict>
 						<key>string</key>
-						<string>请先复制抖音或 YouTube 视频链接，或从分享菜单运行此快捷指令。</string>
+						<string>请先复制抖音、Instagram 或 YouTube 视频链接，或从分享菜单运行此快捷指令。</string>
 						<key>attachmentsByRange</key>
 						<dict/>
 					</dict>
